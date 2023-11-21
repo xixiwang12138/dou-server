@@ -22,7 +22,7 @@ export class User extends BaseModel {
     id!: string;
 
     @Unique
-    @Column(DataType.STRING(255))
+    @Column(DataType.STRING(63))
     phone: string;
 
     @Column(DataType.STRING(255))
