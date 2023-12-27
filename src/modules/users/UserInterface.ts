@@ -9,7 +9,7 @@ import {auth, authMgr, Payload} from "../auth/AuthManager";
 import {getProvider} from "../dou/constants";
 import {Transaction} from "./models/Transaction";
 import {Application} from "../application/models/Application";
-import {Sign, SignType} from "./models/Sign";
+import {Sign, SignState} from "./models/Sign";
 import {AddressType, UserAddress} from "./models/UserAddress";
 import {snowflake} from "../sequelize/snowflake/Snowflake";
 
@@ -135,7 +135,7 @@ export class UserInterface extends BaseInterface {
         @body("message") message: string, // 授权签名的消息
         @body("appId") appId: string, // 授权签名的app
         @body("redirectUrl") redirectUrl: string,
-        @body("signType") signType: SignType,
+        @body("signType") signType: SignState,
         @custom("auth") payload: Payload) {
         const user = await User.findOne({where: {phone: payload.phone}});
         if (!user) throw "用户不存在";
@@ -156,8 +156,7 @@ export class UserInterface extends BaseInterface {
             redirectUrl,
             creator: payload.phone,
         });
-        if (signType == SignType.Reject) return;// 拒绝签名
-
+        if (signType == SignState.Reject) return {};// 拒绝签名
         return {
             sign,
             message, // 授权签名的消息

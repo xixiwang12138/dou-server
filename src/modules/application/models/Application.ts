@@ -1,4 +1,4 @@
-import {BaseModel} from "../../sequelize/BaseModel";
+import {BaseModel, JSONColumn} from "../../sequelize/BaseModel";
 import {model} from "../../sequelize/SequelizeManager";
 import {AllowNull, AutoIncrement, Column, DataType, PrimaryKey, Table} from "sequelize-typescript";
 
@@ -26,10 +26,12 @@ export class Application extends BaseModel {
     @Column(DataType.STRING(255))
     logo: string;
 
-    @Column(DataType.STRING(255))
-    defaultRedirectUrl: string;
+    @JSONColumn
+    @Column(DataType.TEXT)
+    redirectUrls: string[]
 
-    @Column(DataType.STRING(1023))
-    developers: string; // 开发者列表，以英文分号分割
+    @JSONColumn
+    @Column(DataType.TEXT)
+    developers: string[];
 
 }
