@@ -12,6 +12,7 @@ import {Application} from "../application/models/Application";
 import {Sign, SignState} from "./models/Sign";
 import {AddressType, UserAddress} from "./models/UserAddress";
 import {snowflake} from "../sequelize/snowflake/Snowflake";
+import {signMgr} from "./SignManager";
 
 
 @route("/user")
@@ -137,11 +138,11 @@ export class UserInterface extends BaseInterface {
         @body("redirectUrl") redirectUrl: string,
         @body("signType") signType: SignState,
         @custom("auth") payload: Payload) {
+        // 校验签名参数
+        await signMgr().checkAppPerm(appId, redirectUrl);
+
         const user = await User.findOne({where: {phone: payload.phone}});
         if (!user) throw "用户不存在";
-
-        const app = await Application.findByPk(appId);
-        if (!app) throw "应用不存在";
 
         const ud = await UserAddress.findOne({where: {userId: user.id, addressType: AddressType.Inner}})
         // 使用user中的私钥签名

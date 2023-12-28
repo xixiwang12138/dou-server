@@ -32,6 +32,6 @@ export class Application extends BaseModel {
 
     @JSONColumn
     @Column(DataType.TEXT)
-    developers: string[];
+    developers: string[]; // 开发者列表
 
 }
