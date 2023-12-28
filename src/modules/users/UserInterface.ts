@@ -188,7 +188,7 @@ export class UserInterface extends BaseInterface {
         for (let scope of scopes) {
             if (scope == "user.phone") userInfo["phone"] = user.phone;
             if (scope == "user.email") userInfo["email"] = user.email;
-            if (scope == "user.identity") userInfo["identity"] = user.card;
+            if (scope == "user.identity") userInfo["card"] = user.card;
             if (scope == "user.region") userInfo["region"] = user.region;
             if (scope == "user.addresses") {
                 const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
