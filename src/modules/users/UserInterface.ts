@@ -137,7 +137,8 @@ export class UserInterface extends BaseInterface {
         @body("appId") appId: string, // 授权签名的app
         @body("redirectUrl") redirectUrl: string,
         @body("signType") signType: SignState,
-        @custom("auth") payload: Payload) {
+        @custom("auth") payload: Payload,
+    ) {
         // 校验签名参数
         await signMgr().checkAppPerm(appId, redirectUrl);
 
@@ -155,7 +156,7 @@ export class UserInterface extends BaseInterface {
             appId,
             signType,
             redirectUrl,
-            creator: payload.phone,
+            creator: user.id,
         });
         if (signType == SignState.Reject) return {};// 拒绝签名
         return {
@@ -163,6 +164,39 @@ export class UserInterface extends BaseInterface {
             message, // 授权签名的消息
             address: ud.address
         }
+    }
+
+    // 第三方调用
+    @get("/detail")
+    async getUserDetail(
+        @query("sign") sign: string,
+    ) {
+        const signDetail = await Sign.findOne({where: {sign}});
+        if (!signDetail) throw new BaseError(403, "非法签名");
+
+        let scopes = [];
+        try {
+            scopes = signMgr().getLoginScopes(signDetail.message);
+        } catch (e) {
+            throw new BaseError(403, "签名已过期");
+        }
+
+        const user = await User.findOne({where: {id: signDetail.creator}});
+
+        // 根据scopes获取用户信息
+        const userInfo = {};
+        for (let scope of scopes) {
+            if (scope == "user.phone") userInfo["phone"] = user.phone;
+            if (scope == "user.email") userInfo["email"] = user.email;
+            if (scope == "user.identity") userInfo["identity"] = user.card;
+            if (scope == "user.region") userInfo["region"] = user.region;
+            if (scope == "user.addresses") {
+                const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
+                if (!userAddresses) continue;
+                userInfo["addresses"] = userAddresses.map(v => v.address);
+            }
+        }
+        return {userInfo}
     }
 
 
