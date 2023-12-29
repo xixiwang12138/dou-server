@@ -39,8 +39,9 @@ export class UserInterface extends BaseInterface {
     @auth()
     @get("/me")
     async getMyProfile(@custom("auth") payload: Payload) {
+        const user = await User.findOne({where: {phone: payload.phone}});
         return {
-            user: await User.findOne({where: {phone: payload.phone}})
+            user: await this.getUserDetails(user)
         }
     }
 
@@ -94,8 +95,16 @@ export class UserInterface extends BaseInterface {
 
         return {
             jwt: await authMgr().createKey({phone: phone}),
-            user, registered
+            user: await this.getUserDetails(user), registered
         };
+    }
+
+    async getUserDetails(user: User) {
+        const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
+        return {
+            ...user.toJSON(),
+            addresses: userAddresses.map(v => v.address),
+        }
     }
 
     async register(phone: string) {
