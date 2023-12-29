@@ -21,8 +21,8 @@ export class SignManager extends BaseManager {
         const app = await Application.findByPk(appId);
         if (!app) throw "应用不存在";
 
-        // 校验跳转的URL是否合法
-        if (!app.redirectUrls.includes(redirectUrl)) throw "跳转URL不合法";
+        // // 校验跳转的URL是否合法
+        // if (!app.redirectUrls.includes(redirectUrl)) throw "跳转URL不合法";
 
         if (operator) {
             if (!app.developers.includes(operator)) throw "没有权限";
