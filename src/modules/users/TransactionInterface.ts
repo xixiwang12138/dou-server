@@ -1,10 +1,11 @@
-import {BaseInterface, body, custom, post, route} from "../http/InterfaceManager";
+import {BaseInterface, body, custom, params, post, route} from "../http/InterfaceManager";
 import {auth, Payload} from "../auth/AuthManager";
 import {signMgr} from "./SignManager";
-import {Wallet} from "ethers";
+import {ethers, Wallet} from "ethers";
 import {User} from "./models/User";
 import {AddressType, UserAddress} from "./models/UserAddress";
 import {getProvider} from "../dou/constants";
+import {BaseError} from "../http/utils/ResponseUtils";
 
 
 @route("/transaction")
@@ -21,20 +22,46 @@ export class TransactionInterface extends BaseInterface {
     ) {
         await signMgr().checkAppPerm(appId, redirectUrl);
 
-        const user = await User.findOne({where: {phone: payload.phone}});
-        const innerAd = await UserAddress.findOne({where: {userId: user.id, addressType: AddressType.Inner}});
-
-        // 发起交易
-        const wallet = new Wallet(innerAd.privateKey, await getProvider("devnet"))
-        const sentTransaction = await wallet.sendTransaction({
+        return await signMgr().sendTransaction(payload.phone, {
             to: contract,
             data: data,
         });
-        // 等待交易确认，并获取交易哈希
-        const transactionReceipt = await sentTransaction.wait();
-        const transactionHash = transactionReceipt.transactionHash;
-        return {
-            txHash: transactionHash
-        }
+    }
+
+
+    @auth()
+    @post("/incr/:txHash")
+    async incrTransaction(
+        @params("txHash") txHash: string,
+        @custom("auth") payload: Payload,
+    ) {
+        const originalTransaction = await getProvider("devnet").getTransaction(txHash);
+        if (!originalTransaction) throw new BaseError(400, "invalid txHash");
+
+        const newGas = originalTransaction.gasPrice.mul(110).div(100);
+        const newTransaction = {
+            ...originalTransaction,
+            gasPrice: newGas,
+        };
+
+        return await signMgr().sendTransaction(payload.phone, newTransaction);
+    }
+
+    @auth()
+    @post("/cancel/:txHash")
+    async cancelTransaction(
+        @params("txHash") txHash: string,
+        @custom("auth") payload: Payload,
+    ) {
+        const originalTransaction = await getProvider("devnet").getTransaction(txHash);
+        if (!originalTransaction) throw new BaseError(400, "invalid txHash");
+
+        const newGas = originalTransaction.gasPrice.mul(110).div(100);
+        const newTransaction = {
+            ...originalTransaction,
+            gasPrice: newGas,
+            value: ethers.utils.parseEther("0"), // 0 ETH
+        };
+        return await signMgr().sendTransaction(payload.phone, newTransaction);
     }
 }
