@@ -1,13 +1,18 @@
 import {BaseInterface, body, custom, get, post, query, route} from "../http/InterfaceManager";
 import {User} from "./models/User";
 import {BaseError} from "../http/utils/ResponseUtils";
-import {UniqueConstraintError} from "sequelize";
+import {Op, UniqueConstraintError} from "sequelize";
 import {smsMgr} from "./SMSManager";
 import {MathUtils} from "../../utils/MathUtils";
 import {ethers, Wallet} from 'ethers';
 import {auth, authMgr, Payload} from "../auth/AuthManager";
+import {getProvider} from "../dou/constants";
+import {Transaction} from "./models/Transaction";
 import {Application} from "../application/models/Application";
-import {hexlify, recoverAddress, toUtf8Bytes} from "ethers/lib/utils";
+import {Sign, SignState} from "./models/Sign";
+import {AddressType, UserAddress} from "./models/UserAddress";
+import {snowflake} from "../sequelize/snowflake/Snowflake";
+import {signMgr} from "./SignManager";
 
 
 @route("/user")
@@ -39,6 +44,40 @@ export class UserInterface extends BaseInterface {
         }
     }
 
+    @auth()
+    @get("/balances")
+    async getBalances(@custom("auth") payload: Payload) {
+        const user = await User.findOne({where: {phone: payload.phone}});
+        const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
+        if (!userAddresses) throw "用户地址信息异常";
+
+        const addresses = userAddresses.map(v => v.address), balances = {}
+
+        const provider = await getProvider("devnet");
+
+        for (let address of addresses)
+            balances[address] = (await provider.getBalance(address)).toString()
+
+        return {balances}
+    }
+
+    @auth()
+    @get("/txs")
+    async getTransactions(@custom("auth") payload: Payload) {
+        const user = await User.findOne({where: {phone: payload.phone}});
+        const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
+        if (!userAddresses) throw "用户地址信息异常";
+
+        const addresses = userAddresses.map(v => v.address), txs = {}
+
+        for (let address of addresses)
+            txs[address] = (await Transaction.findAll({
+                where: {[Op.or]: [{from: address}, {to: address}]},
+            })).map(tx => tx.toJSON())
+
+        return {txs}
+    }
+
     @post("/login")
     async login(
         @body("phone") phone: string,
@@ -48,7 +87,7 @@ export class UserInterface extends BaseInterface {
 
         let user = await User.findOne({where: {phone}});
         let registered = true;
-        if (!user) { //注册
+        if (!user) { // 注册
             registered = false;
             await this.register(phone);
         }
@@ -63,12 +102,17 @@ export class UserInterface extends BaseInterface {
         const pk = Wallet.createRandom().privateKey;
         // 通过私钥换取地址
         const address = new Wallet(pk).address;
+
         try {
-            await User.create({
+            const user = await User.create({
                 phone,
-                addresses: [address],
-                privateKey: pk,
             });
+            await UserAddress.create({
+                userId: user.id,
+                address,
+                addressType: AddressType.Inner,
+                privateKey: pk,
+            })
         } catch (e) {
             if (e instanceof UniqueConstraintError)
                 throw new BaseError(400, "手机号已经被注册");
@@ -90,16 +134,69 @@ export class UserInterface extends BaseInterface {
     async sign(
         // @body("app") app: string, // 授权签名的app
         @body("message") message: string, // 授权签名的消息
-        @custom("auth") payload: Payload) {
+        @body("appId") appId: string, // 授权签名的app
+        @body("redirectUrl") redirectUrl: string,
+        @body("signType") signType: SignState,
+        @custom("auth") payload: Payload,
+    ) {
+        // 校验签名参数
+        await signMgr().checkAppPerm(appId, redirectUrl);
+
         const user = await User.findOne({where: {phone: payload.phone}});
         if (!user) throw "用户不存在";
 
+        const ud = await UserAddress.findOne({where: {userId: user.id, addressType: AddressType.Inner}})
         // 使用user中的私钥签名
-        const wallet = new Wallet(user.privateKey);
+        const wallet = new Wallet(ud.privateKey);
         const sign = await wallet.signMessage(message);
+
+        await Sign.create({
+            sign,
+            message,
+            appId,
+            signType,
+            redirectUrl,
+            creator: user.id,
+        });
+        if (signType == SignState.Reject) return {};// 拒绝签名
         return {
-            sign
+            sign,
+            message, // 授权签名的消息
+            address: ud.address
         }
+    }
+
+    // 第三方调用
+    @get("/detail")
+    async getUserDetail(
+        @query("sign") sign: string,
+    ) {
+        const signDetail = await Sign.findOne({where: {sign}});
+        if (!signDetail) throw new BaseError(403, "非法签名");
+
+        let scopes = [];
+        try {
+            scopes = signMgr().getLoginScopes(signDetail.message);
+        } catch (e) {
+            throw new BaseError(403, "签名已过期");
+        }
+
+        const user = await User.findOne({where: {id: signDetail.creator}});
+
+        // 根据scopes获取用户信息
+        const userInfo = {};
+        for (let scope of scopes) {
+            if (scope == "user.phone") userInfo["phone"] = user.phone;
+            if (scope == "user.email") userInfo["email"] = user.email;
+            if (scope == "user.identity") userInfo["card"] = user.card;
+            if (scope == "user.region") userInfo["region"] = user.region;
+            if (scope == "user.addresses") {
+                const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
+                if (!userAddresses) continue;
+                userInfo["addresses"] = userAddresses.map(v => v.address);
+            }
+        }
+        return {userInfo}
     }
 
 
@@ -121,16 +218,27 @@ export class UserInterface extends BaseInterface {
         const user = await User.findOne({where: {phone: payload.phone}});
         if (!user) throw "用户不存在";
 
-        // // 验证签名
-        // try {
-        //     const recovered = recoverAddress(hexlify(toUtf8Bytes(this.message)), sign)
-        //     console.log("[recoverAddress] recovered: ", recovered)
-        //     if (!user.addresses.includes(recovered)) throw "签名不正确";
-        // } catch (e) {
-        //     throw "签名校验不通过";
-        // }
-        const addresses = [...user.addresses, address];
-        await User.update({addresses: addresses}, {where: {phone: payload.phone}});
+        // 验证签名
+        try {
+            // const bytes = ethers.utils.toUtf8Bytes(this.message);
+            const recovered = ethers.utils.verifyMessage(this.message, sign)
+            console.log("[verifyMessage] verifyMessage: ", recovered)
+            if (recovered != address) throw "签名不正确";
+        } catch (e) {
+            console.log("[verifyMessage] error", e)
+            throw "签名校验不通过";
+        }
+
+        const sign_ = await Sign.findOne({where: {sign}});
+        const ud = await UserAddress.findOne({where: {address}}); // 检查地址是否已经绑定
+        if (ud) throw `地址${address}已经绑定`;
+
+        await UserAddress.create({
+            userId: user.id,
+            address,
+            addressType: AddressType.Outer,
+            signId: sign_.id,
+        })
     }
 
     private validPhone(phone: string) {
@@ -140,6 +248,7 @@ export class UserInterface extends BaseInterface {
 
     private validIdCard(card: string) {
         // 使用正则表达式校验身份证号是否合法
+        // TODO: 校验身份证最后一位校验码
         return /^(\d{15}$|^\d{18}$|^\d{17}(\d|X|x))$/.test(card);
     }
 
