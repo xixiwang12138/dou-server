@@ -20,7 +20,6 @@ export class User extends BaseModel {
     @Column(DataType.BIGINT)
     id!: string;
 
-    @Unique
     @Column(DataType.STRING(32))
     phone: string;
 
