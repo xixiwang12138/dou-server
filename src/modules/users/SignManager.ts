@@ -1,6 +1,10 @@
 import {BaseManager, getManager, manager} from "../../app/ManagerContext";
 import {Application} from "../application/models/Application";
 import {base64} from "ethers/lib/utils";
+import {User} from "./models/User";
+import {AddressType, UserAddress} from "./models/UserAddress";
+import {Wallet} from "ethers";
+import {getProvider} from "../dou/constants";
 
 
 export function signMgr() {
@@ -20,11 +24,27 @@ export class SignManager extends BaseManager {
         // 校验跳转的URL是否合法
         if (!app.redirectUrls.includes(redirectUrl)) throw "跳转URL不合法";
 
-        if(operator) {
+        if (operator) {
             if (!app.developers.includes(operator)) throw "没有权限";
         }
 
         return app;
+    }
+
+
+    async sendTransaction(phone: string, tx) {
+        const user = await User.findOne({where: {phone: phone}});
+        const innerAd = await UserAddress.findOne({where: {userId: user.id, addressType: AddressType.Inner}});
+
+        // 发起交易
+        const wallet = new Wallet(innerAd.privateKey, await getProvider("devnet"))
+        const sentTransaction = await wallet.sendTransaction(tx);
+        // 等待交易确认，并获取交易哈希
+        const transactionReceipt = await sentTransaction.wait();
+        const transactionHash = transactionReceipt.transactionHash;
+        return {
+            txHash: transactionHash
+        }
     }
 
     getLoginScopes(message: string) {
