@@ -31,13 +31,15 @@ export class SignManager extends BaseManager {
         return app;
     }
 
-
-    async sendTransaction(phone: string, tx) {
+    async getUserInnerAddress(phone: string) {
         const user = await User.findOne({where: {phone: phone}});
-        const innerAd = await UserAddress.findOne({where: {userId: user.id, addressType: AddressType.Inner}});
+        return await UserAddress.findOne({where: {userId: user.id, addressType: AddressType.Inner}});
+    }
 
+
+    async sendTransaction(privateKey: string, tx) {
         // 发起交易
-        const wallet = new Wallet(innerAd.privateKey, await getProvider("devnet"))
+        const wallet = new Wallet(privateKey, await getProvider("devnet"))
         const sentTransaction = await wallet.sendTransaction(tx);
         // 等待交易确认，并获取交易哈希
         const transactionReceipt = await sentTransaction.wait();
