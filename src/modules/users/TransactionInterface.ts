@@ -38,13 +38,15 @@ export class TransactionInterface extends BaseInterface {
         const originalTransaction = await getProvider("devnet").getTransaction(txHash);
         if (!originalTransaction) throw new BaseError(400, "invalid txHash");
 
+        const inner = await signMgr().getUserInnerAddress(payload.phone);
+
         const newGas = originalTransaction.gasPrice.mul(110).div(100);
         const newTransaction = {
             ...originalTransaction,
             gasPrice: newGas,
         };
 
-        return await signMgr().sendTransaction(payload.phone, newTransaction);
+        return await signMgr().sendTransaction(inner.privateKey, newTransaction);
     }
 
     @auth()
@@ -56,12 +58,15 @@ export class TransactionInterface extends BaseInterface {
         const originalTransaction = await getProvider("devnet").getTransaction(txHash);
         if (!originalTransaction) throw new BaseError(400, "invalid txHash");
 
+        const inner = await signMgr().getUserInnerAddress(payload.phone);
+
         const newGas = originalTransaction.gasPrice.mul(110).div(100);
         const newTransaction = {
             ...originalTransaction,
             gasPrice: newGas,
+            to: inner.address,
             value: ethers.utils.parseEther("0"), // 0 ETH
         };
-        return await signMgr().sendTransaction(payload.phone, newTransaction);
+        return await signMgr().sendTransaction(inner.privateKey, newTransaction);
     }
 }
