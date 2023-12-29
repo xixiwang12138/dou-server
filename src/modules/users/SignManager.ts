@@ -47,7 +47,8 @@ export class SignManager extends BaseManager {
         }
     }
 
-    getLoginScopes(message: string) {
+    getLoginScopes(encodedMessage: string) {
+        const message = base64.decode(encodedMessage).toString();
         const lines = message.split("\n");
 
         let scopesStartIndex = 0;
