@@ -21,8 +21,8 @@ export class TransactionInterface extends BaseInterface {
         @custom("auth") payload: Payload
     ) {
         await signMgr().checkAppPerm(appId, redirectUrl);
-
-        return await signMgr().sendTransaction(payload.phone, {
+        const inner = await signMgr().getUserInnerAddress(payload.phone);
+        return await signMgr().sendTransaction(inner.privateKey, {
             to: contract,
             data: data,
         });
