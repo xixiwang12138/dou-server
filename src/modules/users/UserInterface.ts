@@ -8,10 +8,8 @@ import {ethers, Wallet} from 'ethers';
 import {auth, authMgr, Payload} from "../auth/AuthManager";
 import {getProvider} from "../dou/constants";
 import {Transaction} from "./models/Transaction";
-import {Application} from "../application/models/Application";
 import {Sign, SignState} from "./models/Sign";
 import {AddressType, UserAddress} from "./models/UserAddress";
-import {snowflake} from "../sequelize/snowflake/Snowflake";
 import {signMgr} from "./SignManager";
 
 
@@ -238,10 +236,18 @@ export class UserInterface extends BaseInterface {
             throw "签名校验不通过";
         }
 
-        const sign_ = await Sign.findOne({where: {sign}});
         const ud = await UserAddress.findOne({where: {address}}); // 检查地址是否已经绑定
         if (ud) throw `地址${address}已经绑定`;
 
+        await Sign.create({
+            sign,
+            message: this.message,
+            appId: "",
+            signType: SignState.Sign,
+            redirectUrl: "",
+            creator: user.id,
+        });
+        const sign_ = await Sign.findOne({where: {sign}});
         await UserAddress.create({
             userId: user.id,
             address,
