@@ -55,7 +55,7 @@ export class UserInterface extends BaseInterface {
         const provider = await getProvider("devnet");
 
         for (let address of addresses)
-            balances[address] = (await provider.getBalance(address)).toString()
+            balances[address] = Number((await provider.getBalance(address)).toString()) / 10e18
 
         return {balances}
     }
