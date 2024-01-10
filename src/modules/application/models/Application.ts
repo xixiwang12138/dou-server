@@ -1,8 +1,10 @@
 import {BaseModel, JSONColumn} from "../../sequelize/BaseModel";
 import {model} from "../../sequelize/SequelizeManager";
 import {AllowNull, AutoIncrement, Column, DataType, PrimaryKey, Table} from "sequelize-typescript";
+import {snowflakeModel} from "../../sequelize/snowflake/Snowflake";
 
 @model
+@snowflakeModel
 @Table({
     freezeTableName: true,
     timestamps: false,

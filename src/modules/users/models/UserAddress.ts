@@ -22,10 +22,10 @@ export class UserAddress extends BaseModel {
     id!: string;
 
     @Unique
-    @Column(DataType.STRING(255))
+    @Column(DataType.STRING(64))
     address: string; // 地址
 
-    @Column(DataType.STRING(255))
+    @Column(DataType.BIGINT)
     userId: string;
 
     @Column(DataType.SMALLINT)
