@@ -1,13 +1,14 @@
 import {BaseModel, JSONColumn} from "../../sequelize/BaseModel";
 import {model} from "../../sequelize/SequelizeManager";
 import {AllowNull, AutoIncrement, Column, DataType, PrimaryKey, Table, Unique} from "sequelize-typescript";
+import {snowflakeModel} from "../../sequelize/snowflake/Snowflake";
 
 export enum AddressType {
     Inner = 0, // 内部地址
     Outer = 1, // 外部地址
 }
 
-@model
+@snowflakeModel
 @Table({
     freezeTableName: true,
     timestamps: true,
@@ -19,11 +20,12 @@ export class UserAddress extends BaseModel {
     @Column(DataType.BIGINT)
     id!: string;
 
-    @Column(DataType.STRING(255))
-    userId: string;
-
+    @Unique
     @Column(DataType.STRING(255))
     address: string; // 地址
+
+    @Column(DataType.STRING(255))
+    userId: string;
 
     @Column(DataType.SMALLINT)
     addressType: AddressType; // 地址类型
