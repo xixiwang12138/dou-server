@@ -8,6 +8,7 @@ export enum AddressType {
     Outer = 1, // 外部地址
 }
 
+@model
 @snowflakeModel
 @Table({
     freezeTableName: true,

@@ -9,6 +9,7 @@ export enum UserLevel {
     Vip = 2 //VIP
 }
 
+@model
 @snowflakeModel
 @Table({
     freezeTableName: true,
@@ -28,7 +29,6 @@ export class User extends BaseModel {
 
     @Column(DataType.STRING(255))
     card?: string;
-
 
     @Column(DataType.STRING(255))
     userName?: string;

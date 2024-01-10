@@ -8,6 +8,7 @@ export enum SignState {
     Reject  = 2, // 拒绝
 }
 
+@model
 @snowflakeModel
 @Table({
     freezeTableName: true,
