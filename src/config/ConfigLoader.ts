@@ -15,6 +15,7 @@ export const APP_META = {
 }
 
 export async function setupConf() {
+    // GlobalConfig = await new FileConfigLoader(LocalConfigPath).load(GlobalEnv);
     GlobalConfig = await new ConsulConfigLoader(APP_META.consulHost, APP_META.projectName).load(GlobalEnv);
     console.log("[Load Config]", GlobalConfig)
 }
@@ -58,8 +59,8 @@ export class ConsulConfigLoader implements ConfigLoader {
     }
 
     async load(env: string): Promise<MainConfig> {
-        const {Value: configText} = await this.consulClient.kv.get(this.getKey(env));
-        return JSON.parse(configText);
+        const res = await this.consulClient.kv.get(this.getKey(env));
+        return JSON.parse(res?.Value);
     }
 
     private getKey(env: string) {

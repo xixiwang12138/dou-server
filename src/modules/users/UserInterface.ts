@@ -161,7 +161,7 @@ export class UserInterface extends BaseInterface {
             sign,
             message,
             appId,
-            signType,
+            signState: signType,
             redirectUrl,
             creator: user.id,
         });
@@ -243,7 +243,7 @@ export class UserInterface extends BaseInterface {
             sign,
             message: this.message,
             appId: "",
-            signType: SignState.Sign,
+            signState: SignState.Sign,
             redirectUrl: "",
             creator: user.id,
         });

@@ -1,4 +1,4 @@
-forever start --uid "dou" /home/server/dou-server/dist/index.js -a
+forever start --uid "dou" -a /home/server/dou-server/dist/index.js
 
 forever restart dou
 
