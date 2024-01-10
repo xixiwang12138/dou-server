@@ -1,6 +1,7 @@
 import {BaseModel, JSONColumn} from "../../sequelize/BaseModel";
 import {model} from "../../sequelize/SequelizeManager";
 import {AllowNull, AutoIncrement, Column, DataType, PrimaryKey, Table, Unique} from "sequelize-typescript";
+import {snowflakeModel} from "../../sequelize/snowflake/Snowflake";
 
 export enum UserLevel {
     Normal = 0, // 普通用户
@@ -8,7 +9,7 @@ export enum UserLevel {
     Vip = 2 //VIP
 }
 
-@model
+@snowflakeModel
 @Table({
     freezeTableName: true,
     timestamps: true,
@@ -16,7 +17,6 @@ export enum UserLevel {
 })
 export class User extends BaseModel {
     @PrimaryKey
-    @AutoIncrement
     @Column(DataType.BIGINT)
     id!: string;
 

@@ -1,12 +1,14 @@
 import {BaseModel, JSONColumn} from "../../sequelize/BaseModel";
 import {model} from "../../sequelize/SequelizeManager";
 import {AllowNull, AutoIncrement, Column, DataType, PrimaryKey, Table, Unique} from "sequelize-typescript";
+import {snowflakeModel} from "../../sequelize/snowflake/Snowflake";
 
 export enum SignState {
     Sign = 1, // 签名
     Reject  = 2, // 拒绝
 }
-@model
+
+@snowflakeModel
 @Table({
     freezeTableName: true,
     timestamps: true,
@@ -14,7 +16,6 @@ export enum SignState {
 })
 export class Sign extends BaseModel {
     @PrimaryKey
-    @AutoIncrement
     @Column(DataType.BIGINT)
     id!: string;
 
@@ -34,5 +35,5 @@ export class Sign extends BaseModel {
     signState: SignState; // 签名的类型
 
     @Column(DataType.STRING(255))
-    creator: string; // 签名者手机号
+    creator: string; // 签名者ID
 }
