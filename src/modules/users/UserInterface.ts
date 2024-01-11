@@ -197,9 +197,16 @@ export class UserInterface extends BaseInterface {
   @auth()
   @get("/txs")
   async getTransactions(@custom("auth") payload: Payload) {
-    const rawTxs = await GetTransaction({address: payload.address, filter: "to | from"});
-    return {
-      txs: rawTxs.items.map(tx => ({
+    const user = await User.findOne({where: {phone: payload.phone}});
+    const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
+    if (!userAddresses) throw "用户地址信息异常";
+
+    const addresses = userAddresses.map(v => v.address)
+
+    const txs = {}
+    for (let address of addresses) {
+      const rawTxs = await GetTransaction({address, filter: "to | from"});
+      txs[address] = rawTxs.items.map(tx => ({
         txHash: tx.hash,
         blockHeight: tx.block,
         blockTime: new Date(tx.timestamp).getTime(),
@@ -214,6 +221,7 @@ export class UserInterface extends BaseInterface {
         fee: tx.fee.value,
       }) as ReturnTransaction)
     }
+    return {txs}
   }
 
   @post("/login")
