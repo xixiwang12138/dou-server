@@ -13,29 +13,27 @@ export enum SignState {
 @Table({
     freezeTableName: true,
     timestamps: true,
-    modelName: "sign",
+    modelName: "contract",
 })
-export class Sign extends BaseModel {
+export class Contract extends BaseModel {
     @PrimaryKey
     @Column(DataType.BIGINT)
     id!: string;
 
-    @Column(DataType.BIGINT)
-    creator: string; // 签名者ID
-
     @AllowNull
     @Column(DataType.BIGINT)
-    appId?: string; // 签名的应用（仅外部签名）
+    appId?: string; // 合约的应用（仅外部签名）
+
+    @Column(DataType.STRING(64))
+    name: string; // 合约名称
+
+    @Unique
+    @Column(DataType.STRING(64))
+    address: string; // 合约地址
+
+    @JSONColumn("long")
+    abi: object; // 合约ABI
 
     @Column(DataType.TEXT)
-    message: string; // 签名的消息
-
-    @Column(DataType.TEXT)
-    sign: string; // 签名
-
-    @Column(DataType.STRING(255))
-    redirectUrl?: string; // 签名成功后的跳转地址（仅外部签名）
-
-    @Column(DataType.INTEGER)
-    signState: SignState; // 签名的类型
+    code: string; // 合约代码
 }

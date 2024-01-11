@@ -22,9 +22,6 @@ export class Transaction extends BaseModel {
   txHash!: string;
 
   @Column(DataType.INTEGER)
-  chainId: number;
-
-  @Column(DataType.INTEGER)
   blockHeight: number;
 
   @DateTimeColumn
