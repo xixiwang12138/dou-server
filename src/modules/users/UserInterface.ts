@@ -1,4 +1,4 @@
-import {BaseInterface, body, custom, get, post, query, route} from "../http/InterfaceManager";
+import {BaseInterface, body, custom, del, get, post, put, query, route} from "../http/InterfaceManager";
 import {get as httpGet} from "../http/NetworkManager";
 import {User} from "./models/User";
 import {BaseError} from "../http/utils/ResponseUtils";
@@ -133,11 +133,11 @@ type ReturnTransaction = {
   to: string;
   nonce: number;
   gasLimit: number;
-  gasPrice: string;
+  gasPrice: number;
   data: string;
-  value: string;
+  value: number;
   state: TransactionState
-  fee: string;
+  fee: number;
 }
 
 const ExplorerAPI = "https://test.exermon.com";
@@ -189,7 +189,9 @@ export class UserInterface extends BaseInterface {
     const provider = await getProvider("devnet");
 
     for (let address of addresses)
-      balances[address] = Number((await provider.getBalance(address)).toString()) / 10e18
+      balances[address] = Number(
+        ethers.utils.formatEther((await provider.getBalance(address)))
+      )
 
     return {balances}
   }
@@ -201,9 +203,8 @@ export class UserInterface extends BaseInterface {
     const userAddresses = await UserAddress.findAll({where: {userId: user.id}});
     if (!userAddresses) throw "用户地址信息异常";
 
-    const addresses = userAddresses.map(v => v.address)
-
     const txs = {}
+    const addresses = userAddresses.map(v => v.address)
     for (let address of addresses) {
       try {
         const rawTxs = await GetTransaction({address, filter: "to | from"});
@@ -215,11 +216,11 @@ export class UserInterface extends BaseInterface {
           to: tx.to.hash,
           nonce: tx.nonce,
           gasLimit: tx.gas_limit,
-          gasPrice: tx.gas_price,
+          gasPrice: Number(ethers.utils.formatEther(tx.gas_price)),
           data: tx.raw_input,
-          value: tx.value,
+          value: Number(ethers.utils.formatEther(tx.value)),
           state: tx.status === "ok" ? TransactionState.Success : TransactionState.Failed,
-          fee: tx.fee.value,
+          fee: Number(ethers.utils.formatEther(tx.fee.value)),
         }) as ReturnTransaction)
       } catch (e) {
         console.log("[GetTransaction] error: ", e)
@@ -377,13 +378,11 @@ export class UserInterface extends BaseInterface {
   message = "DOU wants you to sign in with your Ethereum account, to import your address to your DOU user."
 
   @get("/message")
-  async getMessage() {
-    return { message: this.message }
-  }
+  async getMessage() { return { message: this.message } }
 
   @auth()
-  @post("/address/input")
-  async inputAddress(
+  @put("/address")
+  async importAddress(
     @body("address") address: string, //需要导入的地址
     @body("sign") sign: string,
     @custom("auth") payload: Payload) {
@@ -404,22 +403,34 @@ export class UserInterface extends BaseInterface {
     const ud = await UserAddress.findOne({where: {address}}); // 检查地址是否已经绑定
     if (ud) throw `地址${address}已经绑定`;
 
-    await Sign.create({
+    const signObj = await Sign.create({
       sign,
+      creator: user.id, address,
       message: this.message,
-      appId: "",
       signState: SignState.Sign,
-      redirectUrl: "",
-      creator: user.id,
-      address,
     });
-    const sign_ = await Sign.findOne({where: {sign}});
+
     await UserAddress.create({
-      userId: user.id,
       address,
+      userId: user.id,
+      signId: signObj.id,
       addressType: AddressType.Outer,
-      signId: sign_.id,
     })
+  }
+
+  @auth()
+  @del("/address")
+  async deleteAddress(
+    @body("address") address: string, //需要导入的地址
+    @custom("auth") payload: Payload) {
+
+    const user = await User.findOne({where: {phone: payload.phone}});
+    if (!user) throw "用户不存在";
+
+    const uAddress = await UserAddress.findOne({where: {userId: user.id, address}});
+    if (!uAddress) throw "地址不存在";
+
+    await uAddress.destroy();
   }
 
   private validPhone(phone: string) {

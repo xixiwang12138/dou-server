@@ -36,4 +36,10 @@ export class Application extends BaseModel {
     @Column(DataType.TEXT)
     developers: string[]; // 开发者列表
 
+    toJSON() {
+        const res = super.toJSON();
+        delete res.redirectUrls;
+        delete res.developers;
+        return res;
+    }
 }
