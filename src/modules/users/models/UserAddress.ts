@@ -21,7 +21,6 @@ export class UserAddress extends BaseModel {
     @Column(DataType.BIGINT)
     id!: string;
 
-    @Unique
     @Column(DataType.STRING(64))
     address: string; // 地址
 
