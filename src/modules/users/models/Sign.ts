@@ -23,6 +23,9 @@ export class Sign extends BaseModel {
     @Column(DataType.TEXT)
     sign: string; // 签名
 
+    @Column(DataType.STRING(255))
+    address?: string; // 签名的地址
+
     @Column(DataType.TEXT)
     message: string; // 签名的消息
 

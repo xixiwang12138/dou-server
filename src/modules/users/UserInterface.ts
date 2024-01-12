@@ -137,6 +137,21 @@ export class UserInterface extends BaseInterface {
     }
 
     @auth()
+    @post("/list/sign")
+    async listSign(@custom("auth") payload: Payload) {
+        const user = await User.findOne({where: {phone: payload.phone}});
+        if (!user) throw "用户不存在";
+
+        const signs = await Sign.findAll({where: {creator: user.id}});
+
+        const resp = {};
+        for (const sign of signs) {
+            resp[sign.address] = (resp[sign.address] || []).concat(sign);
+        }
+        return resp
+    }
+
+    @auth()
     @post("/sign")
     async sign(
         // @body("app") app: string, // 授权签名的app
@@ -164,6 +179,7 @@ export class UserInterface extends BaseInterface {
             signState: signType,
             redirectUrl,
             creator: user.id,
+            address: wallet.address,
         });
         if (signType == SignState.Reject) return {};// 拒绝签名
         return {
@@ -246,6 +262,7 @@ export class UserInterface extends BaseInterface {
             signState: SignState.Sign,
             redirectUrl: "",
             creator: user.id,
+            address,
         });
         const sign_ = await Sign.findOne({where: {sign}});
         await UserAddress.create({
