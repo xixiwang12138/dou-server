@@ -289,7 +289,7 @@ export class UserInterface extends BaseInterface {
   }
 
   @auth()
-  @post("/list/sign")
+  @get("/list/sign")
   async listSign(@custom("auth") payload: Payload) {
     const user = await User.findOne({where: {phone: payload.phone}});
     if (!user) throw "用户不存在";
