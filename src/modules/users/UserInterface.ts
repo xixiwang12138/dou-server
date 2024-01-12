@@ -288,33 +288,33 @@ export class UserInterface extends BaseInterface {
     await smsMgr().sendCode(code, phone);
   }
 
-    @auth()
-    @post("/list/sign")
-    async listSign(@custom("auth") payload: Payload) {
-        const user = await User.findOne({where: {phone: payload.phone}});
-        if (!user) throw "用户不存在";
+  @auth()
+  @post("/list/sign")
+  async listSign(@custom("auth") payload: Payload) {
+    const user = await User.findOne({where: {phone: payload.phone}});
+    if (!user) throw "用户不存在";
 
-        const signs = await Sign.findAll({where: {creator: user.id}});
+    const signs = await Sign.findAll({where: {creator: user.id}});
 
-        const resp = {};
-        for (const sign of signs) {
-            resp[sign.address] = (resp[sign.address] || []).concat(sign);
-        }
-        return resp
+    const resp = {};
+    for (const sign of signs) {
+      resp[sign.address] = (resp[sign.address] || []).concat(sign);
     }
+    return resp
+  }
 
-    @auth()
-    @post("/sign")
-    async sign(
-        // @body("app") app: string, // 授权签名的app
-        @body("message") message: string, // 授权签名的消息
-        @body("appId") appId: string, // 授权签名的app
-        @body("redirectUrl") redirectUrl: string,
-        @body("signType") signType: SignState,
-        @custom("auth") payload: Payload,
-    ) {
-        // 校验签名参数
-        await signMgr().checkAppPerm(appId, redirectUrl);
+  @auth()
+  @post("/sign")
+  async sign(
+    // @body("app") app: string, // 授权签名的app
+    @body("message") message: string, // 授权签名的消息
+    @body("appId") appId: string, // 授权签名的app
+    @body("redirectUrl") redirectUrl: string,
+    @body("signType") signType: SignState,
+    @custom("auth") payload: Payload,
+  ) {
+    // 校验签名参数
+    await signMgr().checkAppPerm(appId, redirectUrl);
 
     const user = await User.findOne({where: {phone: payload.phone}});
     if (!user) throw "用户不存在";
@@ -324,21 +324,20 @@ export class UserInterface extends BaseInterface {
     const wallet = new Wallet(ud.privateKey);
     const sign = await wallet.signMessage(message);
 
-        await Sign.create({
-            sign,
-            message,
-            appId,
-            signState: signType,
-            redirectUrl,
-            creator: user.id,
-            address: wallet.address,
-        });
-        if (signType == SignState.Reject) return {};// 拒绝签名
-        return {
-            sign,
-            message, // 授权签名的消息
-            address: ud.address
-        }
+    await Sign.create({
+      sign,
+      message,
+      appId,
+      signState: signType,
+      redirectUrl,
+      creator: user.id,
+      address: wallet.address,
+    });
+    if (signType == SignState.Reject) return {};// 拒绝签名
+    return {
+      sign,
+      message, // 授权签名的消息
+      address: ud.address
     }
   }
 
@@ -408,23 +407,23 @@ export class UserInterface extends BaseInterface {
     const ud = await UserAddress.findOne({where: {address}}); // 检查地址是否已经绑定
     if (ud) throw `地址${address}已经绑定`;
 
-        await Sign.create({
-            sign,
-            message: this.message,
-            appId: "",
-            signState: SignState.Sign,
-            redirectUrl: "",
-            creator: user.id,
-            address,
-        });
-        const sign_ = await Sign.findOne({where: {sign}});
-        await UserAddress.create({
-            userId: user.id,
-            address,
-            addressType: AddressType.Outer,
-            signId: sign_.id,
-        })
-    }
+    await Sign.create({
+      sign,
+      message: this.message,
+      appId: "",
+      signState: SignState.Sign,
+      redirectUrl: "",
+      creator: user.id,
+      address,
+    });
+    const sign_ = await Sign.findOne({where: {sign}});
+    await UserAddress.create({
+      userId: user.id,
+      address,
+      addressType: AddressType.Outer,
+      signId: sign_.id,
+    })
+  }
 
   private validPhone(phone: string) {
     // 使用正则表达式校验手机号是否合法
