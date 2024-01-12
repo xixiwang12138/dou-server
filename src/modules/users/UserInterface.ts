@@ -374,6 +374,7 @@ export class UserInterface extends BaseInterface {
     return {userInfo}
   }
 
+  message: "`DOU wants you to sign in with your Ethereum account, to import your address to your DOU user.`"
 
   @get("/message")
   async getMessage() {
@@ -381,8 +382,6 @@ export class UserInterface extends BaseInterface {
       message: this.message
     }
   }
-
-  message = "dou nb!"
 
   @auth()
   @post("/address/input")
