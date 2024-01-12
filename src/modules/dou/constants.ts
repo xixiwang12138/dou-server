@@ -18,7 +18,7 @@ export const Chains: {[K in ChainType]?: Chain} = {
   },
   devnet: {
     chainId: 687986,
-    rpcUrl: 'http://114.132.93.115:8545',
+    rpcUrl: 'http://114.132.93.115:16880',
   },
 }
 
