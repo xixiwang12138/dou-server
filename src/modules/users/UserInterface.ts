@@ -205,21 +205,26 @@ export class UserInterface extends BaseInterface {
 
     const txs = {}
     for (let address of addresses) {
-      const rawTxs = await GetTransaction({address, filter: "to | from"});
-      txs[address] = rawTxs.items.map(tx => ({
-        txHash: tx.hash,
-        blockHeight: tx.block,
-        blockTime: new Date(tx.timestamp).getTime(),
-        from: tx.from.hash,
-        to: tx.to.hash,
-        nonce: tx.nonce,
-        gasLimit: tx.gas_limit,
-        gasPrice: tx.gas_price,
-        data: tx.raw_input,
-        value: tx.value,
-        state: tx.status === "ok" ? TransactionState.Success : TransactionState.Failed,
-        fee: tx.fee.value,
-      }) as ReturnTransaction)
+      try {
+        const rawTxs = await GetTransaction({address, filter: "to | from"});
+        txs[address] = rawTxs.items.map(tx => ({
+          txHash: tx.hash,
+          blockHeight: tx.block,
+          blockTime: new Date(tx.timestamp).getTime(),
+          from: tx.from.hash,
+          to: tx.to.hash,
+          nonce: tx.nonce,
+          gasLimit: tx.gas_limit,
+          gasPrice: tx.gas_price,
+          data: tx.raw_input,
+          value: tx.value,
+          state: tx.status === "ok" ? TransactionState.Success : TransactionState.Failed,
+          fee: tx.fee.value,
+        }) as ReturnTransaction)
+      } catch (e) {
+        console.log("[GetTransaction] error: ", e)
+        txs[address] = []
+      }
     }
     return {txs}
   }
